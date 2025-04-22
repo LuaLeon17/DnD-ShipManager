@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rastreador de Navío D&D</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Rastreador de Navío D&D</h1>
+  
+  <div class="tab">
+    <button class="tablinks active" onclick="openTab(event, 'shipView')">Navío</button>
+    <button class="tablinks" onclick="openTab(event, 'rulesView')">Reglas</button>
+  </div>
+  
+  <div id="shipView" class="tabcontent">
+    <div class="ship-container">
+      <div class="ship-info">
+        <h2>Información del Navío</h2>
+        <div class="ship-stats">
+          <div class="stat-box">
+            <div>Nombre</div>
+            <input type="text" id="shipName" value="Marea Oscura" onchange="updateShipName()">
+          </div>
+          <div class="stat-box">
+            <div>HP Máximo</div>
+            <input type="number" id="maxHp" value="100" min="1" onchange="updateMaxHp()">
+          </div>
+          <div class="stat-box">
+            <div>Velocidad Base</div>
+            <input type="number" id="baseSpeed" value="45" min="0" onchange="updateSpeed()"> ft.
+          </div>
+          <div class="stat-box">
+            <div>AC</div>
+            <input type="number" id="shipAC" value="15" min="1" max="30">
+          </div>
+        </div>
+        
+        <h3>Salud del Casco</h3>
+        <div class="hp-bar">
+          <div class="hp-fill" id="hpFill" style="width: 100%;"></div>
+          <div class="hp-text" id="hpText">100/100</div>
+        </div>
+        
+        <div class="controls">
+          <button onclick="damageHull()">Dañar Casco</button>
+          <input type="number" id="damageAmount" value="10" min="1">
+          <button onclick="repairHull()">Reparar Casco</button>
+          <input type="number" id="repairAmount" value="10" min="1">
+        </div>
+        
+        <div class="status-effects" id="statusEffects">
+          <h3>Estado del Navío</h3>
+          <div>Velocidad Actual: <span id="currentSpeed">45</span> ft.</div>
+          <div id="hullStatus">El casco está intacto.</div>
+        </div>
+      </div>
+      
+      <div class="ship-image">
+        <h2>Estado Visual</h2>
+        <div style="width: 100%; height: 200px; background-color: #e3f2fd; display: flex; justify-content: center; align-items: center; border-radius: 5px;">
+          <svg width="280" height="180" viewBox="0 0 280 180" id="shipSvg">
+            <!-- Casco del barco -->
+            <path d="M40,100 Q140,140 240,100 V130 Q140,180 40,130 Z" fill="#8b4513" id="hull"/>
+            
+            <!-- Cubierta -->
+            <rect x="70" y="90" width="140" height="10" fill="#d2b48c" id="deck"/>
+            
+            <!-- Mástiles -->
+            <rect x="100" y="40" width="10" height="50" fill="#8b4513" id="mast1"/>
+            <rect x="170" y="40" width="10" height="50" fill="#8b4513" id="mast2"/>
+            
+            <!-- Velas -->
+            <path d="M100,40 Q120,30 140,40 V80 H100 Z" fill="#f5f5dc" id="sail1"/>
+            <path d="M170,40 Q190,30 210,40 V80 H170 Z" fill="#f5f5dc" id="sail2"/>
+            
+            <!-- Timón -->
+            <rect x="230" y="100" width="5" height="20" fill="#8b4513" id="rudder"/>
+            
+            <!-- Timón de mando -->
+            <circle cx="210" cy="95" r="5" fill="#696969" id="helm"/>
+            
+            <!-- Cañones -->
+            <rect x="80" y="95" width="15" height="5" fill="#696969" id="cannon1"/>
+            <rect x="120" y="95" width="15" height="5" fill="#696969" id="cannon2"/>
+            <rect x="160" y="95" width="15" height="5" fill="#696969" id="cannon3"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  
+    <h2>Estaciones del Navío</h2>
+    <div class="stations">
+      <div class="station">
+        <div class="station-header">
+          <h3>Aparejo</h3>
+          <div>
+            <select id="riggingStatus">
+              <option value="intact">Intacto</option>
+              <option value="damaged">Dañado</option>
+              <option value="destroyed">Destruido</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          Efecto: Las velas están rasgadas, el aparejo roto, y la velocidad del barco disminuye en 10 ft.
+        </div>
+        <div class="controls">
+          <button onclick="updateStationStatus('rigging')">Actualizar Estado</button>
+          <button onclick="repairStation('rigging')">Reparar</button>
+        </div>
+      </div>
+      
+      <div class="station">
+        <div class="station-header">
+          <h3>Mástiles</h3>
+          <div>
+            <select id="mastCount">
+              <option value="2">2 Mástiles</option>
+              <option value="1">1 Mástil</option>
+              <option value="0">0 Mástiles</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          Efecto: Si tiene más de un mástil, la velocidad del barco se reduce a la mitad. Si solo tiene un mástil, su velocidad es 0 ft.
+        </div>
+        <div class="controls">
+          <button onclick="updateStationStatus('mast')">Actualizar Estado</button>
+          <button onclick="repairStation('mast')">Reparar</button>
+        </div>
+      </div>
+      
+      <div class="station">
+        <div class="station-header">
+          <h3>Timón</h3>
+          <div>
+            <select id="rudderStatus">
+              <option value="intact">Intacto</option>
+              <option value="damaged">Dañado</option>
+              <option value="destroyed">Destruido</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          Efecto: Dañado: Giro de 45° requiere DC 15 DEX. No se puede usar "Come About". Destruido: El barco no puede girar.
+        </div>
+        <div class="controls">
+          <button onclick="updateStationStatus('rudder')">Actualizar Estado</button>
+          <button onclick="repairStation('rudder')">Reparar</button>
+        </div>
+      </div>
+      
+      <div class="station">
+        <div class="station-header">
+          <h3>Timón de Mando</h3>
+          <div>
+            <select id="helmStatus">
+              <option value="intact">Intacto</option>
+              <option value="damaged">Dañado</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          Efecto: El timón está dañado y el barco no puede girar hasta que se tome la acción de Parche para reemplazarlo.
+        </div>
+        <div class="controls">
+          <button onclick="updateStationStatus('helm')">Actualizar Estado</button>
+          <button onclick="repairStation('helm')">Reparar</button>
+        </div>
+      </div>
+      
+      <div class="station">
+        <div class="station-header">
+          <h3>Armas</h3>
+          <div>
+            <button onclick="addWeapon()">+ Añadir Arma</button>
+          </div>
+        </div>
+        <div>
+          Efecto: El arma toma el daño normal causado por el ataque. Si no es destruida, no puede recargar ni disparar durante 1 ronda.
+        </div>
+        <div id="weaponContainer" class="weapon-container">
+          <!-- Las armas se agregarán aquí dinámicamente -->
+        </div>
+        <div class="controls">
+          <button onclick="damageWeapon()">Dañar Arma</button>
+          <select id="weaponToDamage">
+            <option value="0">Arma 1</option>
+          </select>
+          <input type="number" id="weaponDamage" value="10" min="1">
+        </div>
+      </div>
+      
+      <div class="station">
+        <div class="station-header">
+          <h3>Cubierta / Tripulación</h3>
+          <div>
+            <input type="number" id="crewCount" value="30" min="0">
+          </div>
+        </div>
+        <div>
+          Efecto: Un disparo brutal golpea la cubierta principal, matando a 2d6 miembros de la tripulación.
+        </div>
+        <div class="controls">
+          <button onclick="rollCrewDamage()">Tirar Daño de Tripulación</button>
+          <button onclick="updateCrew()">Actualizar Tripulación</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="log-container">
+      <h2>Registro de Combate</h2>
+      <div id="combatLog"></div>
+    </div>
+  </div>
+  
+  <div id="rulesView" class="tabcontent">
+    <h2>Reglas de Daño al Navío</h2>
+    
+    <table class="damage-table">
+      <thead>
+        <tr>
+          <th>% de HP Perdido</th>
+          <th>Efecto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>25% HP perdido</td>
+          <td>El barco tiene una ruptura en su casco y está tomando agua. La velocidad del barco disminuye en 5 ft.</td>
+        </tr>
+        <tr>
+          <td>50% HP perdido</td>
+          <td>El barco tiene una segunda ruptura en su casco y está tomando aún más agua. La velocidad del barco disminuye en 10 ft.</td>
+        </tr>
+        <tr>
+          <td>75% HP perdido</td>
+          <td>El barco tiene una tercera ruptura en su casco y está tomando aún más agua. La velocidad del barco disminuye en 15 ft.</td>
+        </tr>
+        <tr>
+          <td>100% HP perdido</td>
+          <td>El barco ha sido agujereado y ya no puede moverse ni maniobrar. Se está hundiendo.</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <h2>Efectos de Estaciones Deshabilitadas</h2>
+    
+    <table class="damage-table">
+      <thead>
+        <tr>
+          <th>Estación</th>
+          <th>Efecto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Aparejo</td>
+          <td>Las velas están rasgadas, el aparejo roto, y la velocidad del barco disminuye en 10 ft.</td>
+        </tr>
+        <tr>
+          <td>Mástil</td>
+          <td>El barco pierde uno de sus mástiles. Si tiene más de uno, la velocidad del barco se reduce a la mitad. Si solo tiene un mástil, su velocidad es 0 ft.</td>
+        </tr>
+        <tr>
+          <td>Timón</td>
+          <td>El timón está dañado. Hacer un giro de 45° requiere que el timonel tenga éxito en una prueba de DES (Vehículos Acuáticos) DC 15. La acción de a bordo Come About ya no está disponible. Si el timón es golpeado dos veces, es destruido y el barco ya no puede girar.</td>
+        </tr>
+        <tr>
+          <td>Timón de Mando</td>
+          <td>El timón de mando es golpeado y el barco no puede girar hasta que se tome la acción de Parche para reemplazarlo.</td>
+        </tr>
+        <tr>
+          <td>Arma</td>
+          <td>El arma recibe el daño normal causado por el ataque. Si no es destruida, no puede recargar ni disparar durante 1 ronda.</td>
+        </tr>
+        <tr>
+          <td>Cubierta</td>
+          <td>Un disparo brutal golpea la cubierta principal, matando a 2d6 miembros de la tripulación.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal para tiradas de dados -->
+  <div id="diceModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeDiceModal()">&times;</span>
+      <h2>Tirada de Daño a la Tripulación</h2>
+      <div class="dice-row">
+        <div class="dice" id="dice1">?</div>
+        <div>+</div>
+        <div class="dice" id="dice2">?</div>
+        <div>=</div>
+        <div class="dice" id="diceTotal">?</div>
+      </div>
+      <div class="roll-result" id="rollResult"></div>
+      <div style="text-align: center; margin-top: 20px;">
+        <button onclick="applyCrewDamage()">Aplicar Daño</button>
+        <button onclick="closeDiceModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Variables del barco
+    let ship = {
+      name: "Marea Oscura",
+      maxHp: 100,
+      currentHp: 100,
+      baseSpeed: 45,
+      currentSpeed: 45,
+      ac: 15,
+      stations: {
+        rigging: { status: "intact", repaired: true },
+        mast: { count: 2, repaired: true },
+        rudder: { status: "intact", repaired: true },
+        helm: { status: "intact", repaired: true },
+        weapons: [
+          { id: 0, name: "Cañón 1", maxHp: 50, currentHp: 50, disabled: false }
+        ],
+        crew: { count: 30, original: 30 }
+      }
+    };
+    
+    // Variables para dados
+    let diceRoll = {
+      dice1: 0,
+      dice2: 0,
+      total: 0
+    };
+    
+    // Inicialización
+    window.onload = function() {
+      init();
+    };
+    
+    function init() {
+      updateHpDisplay();
+      updateShipVisuals();
+      updateWeaponsList();
+      document.getElementById("combatLog").innerHTML = `<div class="log-entry">Bienvenido al rastreador de navío para D&D. ¡Que tengas una buena batalla naval!</div>`;
+    }
+    
+    // Actualizar nombre del barco
+    function updateShipName() {
+      ship.name = document.getElementById("shipName").value;
+      logAction(`El nombre del navío ha sido cambiado a ${ship.name}.`);
+    }
+    
+    // Actualizar HP máximo
+    function updateMaxHp() {
+      const newMaxHp = parseInt(document.getElementById("maxHp").value);
+      if (newMaxHp > 0) {
+        // Mantener el mismo porcentaje de HP
+        const hpPercent = ship.currentHp / ship.maxHp;
+        ship.maxHp = newMaxHp;
+        ship.currentHp = Math.round(hpPercent * ship.maxHp);
+        updateHpDisplay();
+        logAction(`HP máximo del navío actualizado a ${ship.maxHp}. HP actual: ${ship.currentHp}.`);
+      }
+    }
+    
+    // Actualizar velocidad
+    function updateSpeed() {
+      ship.baseSpeed = parseInt(document.getElementById("baseSpeed").value);
+      calculateCurrentSpeed();
+      logAction(`Velocidad base del navío actualizada a ${ship.baseSpeed} ft.`);
+    }
+    
+    // Daño al casco
+    function damageHull() {
+      const damageAmount = parseInt(document.getElementById("damageAmount").value);
+      const oldHpPercent = (ship.currentHp / ship.maxHp) * 100;
+      
+      ship.currentHp = Math.max(0, ship.currentHp - damageAmount);
+      updateHpDisplay();
+      
+      const newHpPercent = (ship.currentHp / ship.maxHp) * 100;
+      checkHullThresholds(oldHpPercent, newHpPercent);
+      
+      logAction(`El casco recibe ${damageAmount} puntos de daño. HP restante: ${ship.currentHp}/${ship.maxHp}.`);
+    }
+    
+    // Reparar casco
+    function repairHull() {
+      const repairAmount = parseInt(document.getElementById("repairAmount").value);
+      const oldHpPercent = (ship.currentHp / ship.maxHp) * 100;
+      
+      ship.currentHp = Math.min(ship.maxHp, ship.currentHp + repairAmount);
+      updateHpDisplay();
+      
+      const newHpPercent = (ship.currentHp / ship.maxHp) * 100;
+      checkHullThresholds(oldHpPercent, newHpPercent);
+      
+      logAction(`El casco ha sido reparado por ${repairAmount} puntos. HP actual: ${ship.currentHp}/${ship.maxHp}.`);
+    }
+    
+    // Verificar umbrales de daño al casco
+    function checkHullThresholds(oldPercent, newPercent) {
+      // Cruzamos el umbral del 25%
+      if ((oldPercent > 75 && newPercent <= 75) || (oldPercent <= 75 && newPercent > 75)) {
+        logAction(`¡Umbral del 25% de daño ${newPercent <= 75 ? "alcanzado" : "reparado"}! ${newPercent <= 75 ? "El barco tiene una ruptura en su casco." : "La primera ruptura ha sido reparada."}`);
+      }
+      
+      // Cruzamos el umbral del 50%
+      if ((oldPercent > 50 && newPercent <= 50) || (oldPercent <= 50 && newPercent > 50)) {
+        logAction(`¡Umbral del 50% de daño ${newPercent <= 50 ? "alcanzado" : "reparado"}! ${newPercent <= 50 ? "El barco tiene una segunda ruptura en su casco." : "La segunda ruptura ha sido reparada."}`);
+      }
+      
+      // Cruzamos el umbral del 75%
+      if ((oldPercent > 25 && newPercent <= 25) || (oldPercent <= 25 && newPercent > 25)) {
+        logAction(`¡Umbral del 75% de daño ${newPercent <= 25 ? "alcanzado" : "reparado"}! ${newPercent <= 25 ? "El barco tiene una tercera ruptura en su casco." : "La tercera ruptura ha sido reparada."}`);
+      }
+      
+      // Cruzamos el umbral del 100%
+      if ((oldPercent > 0 && newPercent <= 0) || (oldPercent <= 0 && newPercent > 0)) {
+        logAction(`¡${newPercent <= 0 ? "¡ALERTA! El barco ha sido agujereado y se está hundiendo." : "¡El barco ha sido completamente reparado y ya no se hunde!"}`);
+      }
+      
+      calculateCurrentSpeed();
+      updateHullStatus();
+      updateShipVisuals();
+    }
+    
+    // Actualizar visualización de HP
+    function updateHpDisplay() {
+      const hpPercent = (ship.currentHp / ship.maxHp) * 100;
+      const hpFill = document.getElementById("hpFill");
+      const hpText = document.getElementById("hpText");
+      
+      hpFill.style.width = `${hpPercent}%`;
+      hpText.textContent = `${ship.currentHp}/${ship.maxHp}`;
+      
+      // Cambiar color según HP
+      if (hpPercent > 75) {
+        hpFill.style.backgroundColor = "#4caf50";
+      } else if (hpPercent > 50) {
+        hpFill.style.backgroundColor = "#ffc107"; // amarillo
+      } else if (hpPercent > 25) {
+        hpFill.style.backgroundColor = "#ff9800"; // naranja
+      } else {
+        hpFill.style.backgroundColor = "#f44336"; // rojo
+      }
+    }
+    
+    // Actualizar estado del casco
+    function updateHullStatus() {
+      const hpPercent = (ship.currentHp / ship.maxHp) * 100;
+      const hullStatus = document.getElementById("hullStatus");
+      
+      if (hpPercent <= 0) {
+        hullStatus.textContent = "¡CRÍTICO! El barco está agujereado y se está hundiendo.";
+      } else if (hpPercent <= 25) {
+        hullStatus.textContent = "¡Grave! El barco tiene tres rupturas en su casco y está tomando mucha agua.";
+      } else if (hpPercent <= 50) {
+        hullStatus.textContent = "¡Peligro! El barco tiene dos rupturas en su casco y está tomando bastante agua.";
+      } else if (hpPercent <= 75) {
+        hullStatus.textContent = "¡Alerta! El barco tiene una ruptura en su casco y está tomando agua.";
+      } else {
+        hullStatus.textContent = "El casco está intacto.";
+      }
+    }
+    
+    // Calcular velocidad actual
+    function calculateCurrentSpeed() {
+      const hpPercent = (ship.currentHp / ship.maxHp) * 100;
+      let speedPenalty = 0;
+      
+      // Penalización por daño al casco
+      if (hpPercent <= 25) {
+        speedPenalty += 15;
+      } else if (hpPercent <= 50) {
+        speedPenalty += 10;
+      } else if (hpPercent <= 75) {
+        speedPenalty += 5;
+      }
+      
+      // Penalización por aparejo dañado
+      if (ship.stations.rigging.status === "damaged" || ship.stations.rigging.status === "destroyed") {
+        speedPenalty += 10;
+      }
+      
+      // Penalización por mástiles perdidos
+      let mastPenalty = 0;
+      if (ship.stations.mast.count === 1) {
+        mastPenalty = ship.baseSpeed / 2; // Velocidad reducida a la mitad
+      } else if (ship.stations.mast.count === 0) {
+        mastPenalty = ship.baseSpeed; // Velocidad reducida a 0
+      }
+      
+      // Calcular velocidad final
+      let finalSpeed = ship.baseSpeed - speedPenalty;
+      finalSpeed = Math.max(0, finalSpeed - mastPenalty);
+      
+      ship.currentSpeed = finalSpeed;
+      document.getElementById("currentSpeed").textContent = finalSpeed;
+      
+      return finalSpeed;
+    }
+    
+    // Actualizar visualización del barco
+    function updateShipVisuals() {
+      const hpPercent = (ship.currentHp / ship.maxHp) * 100;
+      const hull = document.getElementById("hull");
+      
+      // Actualizar visualización del casco según el daño
+      if (hpPercent <= 25) {
+        hull.classList.add("damaged");
+        if (hpPercent <= 0) {
+          hull.classList.add("destroyed");
+        }
+      } else {
+        hull.classList.remove("damaged");
+        hull.classList.remove("destroyed");
+      }
+      
+      // Actualizar visualización de mástiles
+      const mast1 = document.getElementById("mast1");
+      const mast2 = document.getElementById("mast2");
+      const sail1 = document.getElementById("sail1");
+      const sail2 = document.getElementById("sail2");
+      
+      if (ship.stations.mast.count < 2) {
+        mast2.classList.add("destroyed");
+        sail2.classList.add("destroyed");
+      } else {
+        mast2.classList.remove("destroyed");
+        sail2.classList.remove("destroyed");
+      }
+      
+      if (ship.stations.mast.count < 1) {
+        mast1.classList.add("destroyed");
+        sail1.classList.add("destroyed");
+      } else {
+        mast1.classList.remove("destroyed");
+        sail1.classList.remove("destroyed");
+      }
+      
+      // Actualizar visualización del aparejo
+      if (ship.stations.rigging.status === "damaged") {
+        sail1.classList.add("damaged");
+        sail2.classList.add("damaged");
+      } else if (ship.stations.rigging.status === "destroyed") {
+        sail1.classList.add("destroyed");
+        sail2.classList.add("destroyed");
+      } else {
+        sail1.classList.remove("damaged");
+        sail1.classList.remove("destroyed");
+        sail2.classList.remove("damaged");
+        sail2.classList.remove("destroyed");
+      }
+      
+      // Actualizar visualización del timón
+      const rudder = document.getElementById("rudder");
+      if (ship.stations.rudder.status === "damaged") {
+        rudder.classList.add("damaged");
+      } else if (ship.stations.rudder.status === "destroyed") {
+        rudder.classList.add("destroyed");
+      } else {
+        rudder.classList.remove("damaged");
+        rudder.classList.remove("destroyed");
+      }
+      
+      // Actualizar visualización del timón de mando
+      const helm = document.getElementById("helm");
+      if (ship.stations.helm.status === "damaged") {
+        helm.classList.add("damaged");
+      } else {
+        helm.classList.remove("damaged");
+      }
+      
+      // Actualizar visualización de cañones
+      const cannon1 = document.getElementById("cannon1");
+      const cannon2 = document.getElementById("cannon2");
+      const cannon3 = document.getElementById("cannon3");
+      
+      // Asumir que el primero de los cañones en el SVG corresponde con la primera arma en la lista, etc.
+      const cannons = [cannon1, cannon2, cannon3];
+      for (let i = 0; i < Math.min(cannons.length, ship.stations.weapons.length); i++) {
+        const weapon = ship.stations.weapons[i];
+        const cannon = cannons[i];
+        
+        if (weapon.currentHp / weapon.maxHp <= 0.5) {
+          cannon.classList.add("damaged");
+        }
+        if (weapon.currentHp <= 0) {
+          cannon.classList.add("destroyed");
+        } else {
+          cannon.classList.remove("destroyed");
+        }
+      }
+    }
+    
+    // Actualizar estado de estación
+    function updateStationStatus(station) {
+      switch(station) {
+        case 'rigging':
+          const riggingStatus = document.getElementById("riggingStatus").value;
+          ship.stations.rigging.status = riggingStatus;
+          ship.stations.rigging.repaired = false;
+          logAction(`El aparejo está ahora ${getSpanishStatus(riggingStatus)}.`);
+          break;
+        case 'mast':
+          const mastCount = parseInt(document.getElementById("mastCount").value);
+          ship.stations.mast.count = mastCount;
+          ship.stations.mast.repaired = false;
+          logAction(`El barco ahora tiene ${mastCount} mástil(es).`);
+          break;
+        case 'rudder':
+          const rudderStatus = document.getElementById("rudderStatus").value;
+          ship.stations.rudder.status = rudderStatus;
+          ship.stations.rudder.repaired = false;
+          logAction(`El timón está ahora ${getSpanishStatus(rudderStatus)}.`);
+          break;
+        case 'helm':
+          const helmStatus = document.getElementById("helmStatus").value;
+          ship.stations.helm.status = helmStatus;
+          ship.stations.helm.repaired = false;
+          logAction(`El timón de mando está ahora ${getSpanishStatus(helmStatus)}.`);
+          break;
+      }
+      
+      calculateCurrentSpeed();
+      updateShipVisuals();
+    }
+    
+    // Traducir estado a español
+    function getSpanishStatus(status) {
+      switch(status) {
+        case 'intact': return 'intacto';
+        case 'damaged': return 'dañado';
+        case 'destroyed': return 'destruido';
+        default: return status;
+      }
+    }
+    
+    // Reparar estación
+    function repairStation(station) {
+      switch(station) {
+        case 'rigging':
+          ship.stations.rigging.status = "intact";
+          ship.stations.rigging.repaired = true;
+          document.getElementById("riggingStatus").value = "intact";
+          logAction("El aparejo ha sido reparado completamente.");
+          break;
+        case 'mast':
+          ship.stations.mast.count = 2;
+          ship.stations.mast.repaired = true;
+          document.getElementById("mastCount").value = "2";
+          logAction("Todos los mástiles han sido reparados.");
+          break;
+        case 'rudder':
+          ship.stations.rudder.status = "intact";
+          ship.stations.rudder.repaired = true;
+          document.getElementById("rudderStatus").value = "intact";
+          logAction("El timón ha sido reparado completamente.");
+          break;
+        case 'helm':
+          ship.stations.helm.status = "intact";
+          ship.stations.helm.repaired = true;
+          document.getElementById("helmStatus").value = "intact";
+          logAction("El timón de mando ha sido reparado completamente.");
+          break;
+      }
+      
+      calculateCurrentSpeed();
+      updateShipVisuals();
+    }
+    
+    // Agregar arma
+    function addWeapon() {
+      const weaponId = ship.stations.weapons.length > 0 ? 
+        Math.max(...ship.stations.weapons.map(w => w.id)) + 1 : 0;
+      
+      const newWeapon = {
+        id: weaponId,
+        name: `Cañón ${weaponId + 1}`,
+        maxHp: 50,
+        currentHp: 50,
+        disabled: false
+      };
+      
+      ship.stations.weapons.push(newWeapon);
+      updateWeaponsList();
+      updateWeaponDropdown();
+      logAction(`Se ha añadido un nuevo arma: ${newWeapon.name}.`);
+    }
+    
+    // Actualizar lista de armas
+    function updateWeaponsList() {
+      const container = document.getElementById("weaponContainer");
+      container.innerHTML = "";
+      
+      ship.stations.weapons.forEach(weapon => {
+        const weaponItem = document.createElement("div");
+        weaponItem.className = "weapon-item";
+        
+        const hpPercent = (weapon.currentHp / weapon.maxHp) * 100;
+        const statusClass = weapon.disabled ? "disabled" : (hpPercent <= 0 ? "destroyed" : (hpPercent <= 50 ? "damaged" : "good"));
+        
+        weaponItem.innerHTML = `
+          <div>${weapon.name}</div>
+          <div style="display: flex; align-items: center;">
+            ${weapon.currentHp}/${weapon.maxHp} HP
+            <div class="weapon-hp-bar">
+              <div class="weapon-hp-fill" style="width: ${hpPercent}%; background-color: ${hpPercent <= 0 ? '#f44336' : (hpPercent <= 50 ? '#ff9800' : '#4caf50')}"></div>
+            </div>
+            <button onclick="repairWeapon(${weapon.id})" style="margin-left: 10px;">Reparar</button>
+          </div>
+        `;
+        
+        container.appendChild(weaponItem);
+      });
+    }
+    
+    // Actualizar menú desplegable de armas
+    function updateWeaponDropdown() {
+      const dropdown = document.getElementById("weaponToDamage");
+      dropdown.innerHTML = "";
+      
+      ship.stations.weapons.forEach(weapon => {
+        const option = document.createElement("option");
+        option.value = weapon.id;
+        option.textContent = weapon.name;
+        dropdown.appendChild(option);
+      });
+    }
+    
+    // Dañar arma
+    function damageWeapon() {
+      const weaponId = parseInt(document.getElementById("weaponToDamage").value);
+      const damageAmount = parseInt(document.getElementById("weaponDamage").value);
+      
+      const weaponIndex = ship.stations.weapons.findIndex(w => w.id === weaponId);
+      if (weaponIndex !== -1) {
+        const weapon = ship.stations.weapons[weaponIndex];
+        weapon.currentHp = Math.max(0, weapon.currentHp - damageAmount);
+        
+        if (weapon.currentHp <= 0) {
+          logAction(`${weapon.name} ha sido destruida.`);
+          weapon.disabled = true;
+        } else {
+          logAction(`${weapon.name} ha recibido ${damageAmount} puntos de daño. No puede recargar ni disparar durante 1 ronda.`);
+          weapon.disabled = true;
+          // Después de 1 ronda (5 segundos para simulación), habilitar el arma nuevamente
+          setTimeout(() => {
+            weapon.disabled = false;
+            logAction(`${weapon.name} puede volver a disparar.`);
+            updateWeaponsList();
+          }, 5000);
+        }
+        
+        updateWeaponsList();
+        updateShipVisuals();
+      }
+    }
+    
+    // Reparar arma
+    function repairWeapon(weaponId) {
+      const weaponIndex = ship.stations.weapons.findIndex(w => w.id === weaponId);
+      if (weaponIndex !== -1) {
+        const weapon = ship.stations.weapons[weaponIndex];
+        weapon.currentHp = weapon.maxHp;
+        weapon.disabled = false;
+        logAction(`${weapon.name} ha sido reparada completamente.`);
+        updateWeaponsList();
+        updateShipVisuals();
+      }
+    }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Añadir la sección de acciones de navío al cargar la página
+    const rulesView = document.getElementById("rulesView");
+      
+    // Crear y añadir la nueva sección de acciones de navío
+    const shipboardActionsSection = document.createElement("div");
+    shipboardActionsSection.innerHTML = `
+      <h2>Acciones de Navío</h2>
+      
+      <table class="damage-table">
+        <thead>
+          <tr>
+            <th>Acción</th>
+            <th>Posición de Tripulación</th>
+            <th>Descripción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>All Stop</strong></td>
+            <td>Master of Tops</td>
+            <td>El maestro de palos intenta una prueba de DES (Vehículos Acuáticos) DC 12 para arriar las velas y soltar el ancla, llevando la velocidad del barco a 0 ft. después de completar su movimiento en esta ronda. Si la prueba falla, el barco continúa moviéndose durante otra ronda antes de que el ancla se agarre. Esta prueba no puede intentarse en aguas profundas.</td>
+          </tr>
+          <tr>
+            <td><strong>Come About</strong></td>
+            <td>Timonel</td>
+            <td>El timonel intenta un cambio severo de dirección con una prueba de DES (Vehículos Acuáticos) DC 15, y si tiene éxito, el barco gira 90° en lugar de los 45° normales. Si la prueba falla, el barco no gira en absoluto. Esta prueba se realiza con desventaja si cruza en contra de la dirección del viento.</td>
+          </tr>
+          <tr>
+            <td><strong>Disable Station</strong></td>
+            <td>Artillero</td>
+            <td>El artillero dispara para deshabilitar estaciones en el navío enemigo. Este ataque se realiza con desventaja. Si el ataque acierta, en lugar de hacer daño al casco, una de las estaciones es dañada según la tabla de Efectos de Estación Deshabilitada. 1d6 miembros de la tripulación en esa área quedan inconscientes y moribundos. Los personajes en el área reciben la mitad del daño a menos que tengan éxito en una tirada de salvación de DES con una DC igual a la tirada de golpe del artillero enemigo, en cuyo caso reciben un cuarto del daño causado por el ataque.</td>
+          </tr>
+          <tr>
+            <td><strong>Escape a Grapple</strong></td>
+            <td>Contramaestre</td>
+            <td>El contramaestre lidera a varios tripulantes para cortar las líneas que atan su embarcación a otra. Al realizar con éxito una prueba de CAR (Intimidación o Persuasión) DC 13 y trabajar con un número de tripulantes igual a uno por cada 10 pies de longitud del barco, las cuerdas se cortan y el navío puede maniobrar. Se necesita una ronda adicional para completar por cada dos tripulantes por debajo del número requerido. Si la prueba falla, la acción tarda una ronda adicional en completarse.</td>
+          </tr>
+          <tr>
+            <td><strong>Evasive Maneuver</strong></td>
+            <td>Timonel</td>
+            <td>El timonel realiza una prueba de INT (Vehículos Acuáticos) enfrentada por el timonel enemigo. Si tiene éxito, los artilleros enemigos tienen desventaja para acertar al barco.</td>
+          </tr>
+          <tr>
+            <td><strong>Force Position</strong></td>
+            <td>Timonel</td>
+            <td>El timonel realiza una prueba de INT (Vehículos Acuáticos) opuesta por el timonel enemigo para forzar al enemigo a una posición desventajosa. Si tiene éxito, el barco enemigo tiene desventaja en su prueba de SAB (Vehículos Acuáticos) para determinar la iniciativa en la siguiente ronda. Si el timonel falla, el enemigo obtiene ventaja en la prueba de la siguiente ronda.</td>
+          </tr>
+          <tr>
+            <td><strong>Full Speed Ahead</strong></td>
+            <td>Master of Tops</td>
+            <td>El maestro de palos usa su acción para ajustar las velas y ganar un impulso de velocidad. El barco puede usar Dash este turno. Si el barco es propulsado por remos, los remeros (se realiza una tirada para el grupo) deben tener éxito en una tirada de salvación de CON DC 12 o ganar un nivel de agotamiento.</td>
+          </tr>
+          <tr>
+            <td><strong>Grapple</strong></td>
+            <td>Contramaestre</td>
+            <td>El contramaestre lidera a varios tripulantes para lanzar garfios a un navío enemigo dentro de 5 pies y atar los barcos juntos. Mientras están atados, ningún barco puede moverse o maniobrar. Esta acción requiere una prueba exitosa de CAR (Intimidación o Persuasión) DC 13 y un número de tripulantes igual a uno por cada 10 pies de longitud del barco enemigo. Se necesita una ronda adicional para completar por cada dos tripulantes por debajo del número requerido. Si la prueba falla, la acción falla y el otro barco puede moverse normalmente. Saltar de un barco enganchado a otro requiere una prueba exitosa de FUE (Atletismo) DC 10. Si esta prueba falla por 5 o más, el marinero cae al agua.</td>
+          </tr>
+          <tr>
+            <td><strong>Hold Her Steady</strong></td>
+            <td>Timonel</td>
+            <td>El timonel mantiene el barco estable, dando a sus tripulaciones de artillería ventaja para golpear a un barco enemigo, pero todos los barcos enemigos obtienen ventaja para golpear a su barco.</td>
+          </tr>
+          <tr>
+            <td><strong>Motivate</strong></td>
+            <td>Contramaestre o Capitán</td>
+            <td>Al gritar órdenes a la tripulación y tener éxito en una prueba de CAR (Intimidación o Persuasión) DC 13, el oficial otorga ventaja en una prueba específica realizada antes del final de esta ronda.</td>
+          </tr>
+          <tr>
+            <td><strong>Patch</strong></td>
+            <td>Carpintero</td>
+            <td>El carpintero lidera a un equipo de reparación de daños de otros cuatro para poner un parche temporal en el casco o reparar una estación dañada. Una prueba exitosa de SAB (Herramientas de Carpintero) restaura 2d6 puntos de golpe al barco o restaura una estación a su orden de funcionamiento. Esta acción solo puede usarse una vez por agujero o estación dañada. La DC para restaurar puntos de golpe a los barcos es 11 + 2 por cada agujero que ha sufrido el barco, y 15 para reparar una estación. Se necesita una ronda adicional para completar esta reparación por cada dos tripulantes por debajo de los cinco requeridos.</td>
+          </tr>
+          <tr>
+            <td><strong>Ram</strong></td>
+            <td>Timonel</td>
+            <td>Si se mueve con el viento, el timonel puede intentar embestir a otro navío haciendo una prueba exitosa de DES (Vehículos Acuáticos) contra la CA del otro barco. Si tiene éxito, ambos barcos reciben 4d10 de daño por cada categoría de tamaño del barco que embiste por encima de Diminuto. Si el barco está equipado con un ariete, solo recibe la mitad del daño. Ambos barcos quedan irremediablemente enganchados y no pueden separarse sin varios minutos de trabajo. Si el ataque falla, los barcos se rozan y ambos reciben un cuarto del daño. La acción de navío Ram no puede realizarse en contra de la dirección del viento.</td>
+          </tr>
+          <tr>
+            <td><strong>Sheer</strong></td>
+            <td>Timonel</td>
+            <td>Solo efectivo contra barcos con remos, el timonel lleva su embarcación a 5 pies del navío enemigo, cortando todos los remos de un lado del navío enemigo, llevando su velocidad a 0 ft. durante tres rondas hasta que se puedan desplegar nuevos remos. Para tener éxito, el timonel debe hacer una prueba exitosa de DES (Vehículos Acuáticos) contra la CA del otro barco.</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+    
+    // Añadir la sección al final de la vista de reglas
+    rulesView.appendChild(shipboardActionsSection);
+  });
+    
+    // Actualizar tripulación
+    function updateCrew() {
+      const crewCount = parseInt(document.getElementById("crewCount").value);
+      ship.stations.crew.count = crewCount;
+      logAction(`Tripulación actualizada a ${crewCount} miembros.`);
+    }
+    
+    // Tirar para daño a tripulación
+    function rollCrewDamage() {
+      const dice1 = Math.floor(Math.random() * 6) + 1;
+      const dice2 = Math.floor(Math.random() * 6) + 1;
+      const total = dice1 + dice2;
+      
+      diceRoll.dice1 = dice1;
+      diceRoll.dice2 = dice2;
+      diceRoll.total = total;
+      
+      document.getElementById("dice1").textContent = dice1;
+      document.getElementById("dice2").textContent = dice2;
+      document.getElementById("diceTotal").textContent = total;
+      document.getElementById("rollResult").textContent = `Un disparo brutal ha golpeado la cubierta, matando a ${total} miembros de la tripulación.`;
+      
+      // Mostrar modal
+      document.getElementById("diceModal").style.display = "block";
+    }
+    
+    // Aplicar daño a tripulación
+    function applyCrewDamage() {
+      const crewLost = diceRoll.total;
+      const oldCrew = ship.stations.crew.count;
+      ship.stations.crew.count = Math.max(0, oldCrew - crewLost);
+      
+      logAction(`Un disparo brutal ha golpeado la cubierta y ha matado a ${crewLost} miembros de la tripulación. Tripulación restante: ${ship.stations.crew.count}.`);
+      document.getElementById("crewCount").value = ship.stations.crew.count;
+      
+      closeDiceModal();
+    }
+    
+    // Cerrar modal de dados
+    function closeDiceModal() {
+      document.getElementById("diceModal").style.display = "none";
+    }
+    
+    // Cambiar entre pestañas
+    function openTab(evt, tabName) {
+      const tabcontent = document.getElementsByClassName("tabcontent");
+      for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      
+      const tablinks = document.getElementsByClassName("tablinks");
+      for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+    }
+    
+    // Registrar acción en el log de combate
+    function logAction(action) {
+      const log = document.getElementById("combatLog");
+      const time = new Date().toLocaleTimeString();
+      log.innerHTML = `<div class="log-entry">[${time}] ${action}</div>` + log.innerHTML;
+      
+      // Mantener log a un tamaño razonable
+      const entries = log.getElementsByClassName("log-entry");
+      if (entries.length > 50) {
+        log.removeChild(entries[entries.length - 1]);
+      }
+    }
+    
+    // Para cuando se haga clic fuera del modal
+    window.onclick = function(event) {
+      const modal = document.getElementById("diceModal");
+      if (event.target == modal) {
+        closeDiceModal();
+      }
+    }
+
+    // Añadir esta función al script existente
+  function addShipboardActionControls() {
+    // Crear una nueva sección para las acciones de navío
+    const actionsSection = document.createElement('div');
+    actionsSection.className = 'station';
+    actionsSection.innerHTML = `
+      <div class="station-header">
+        <h3>Acciones de Navío</h3>
+      </div>
+      <div>
+        <select id="shipboardAction">
+          <option value="allStop">All Stop</option>
+          <option value="comeAbout">Come About</option>
+          <option value="disableStation">Disable Station</option>
+          <option value="escapeGrapple">Escape a Grapple</option>
+          <option value="evasiveManeuver">Evasive Maneuver</option>
+          <option value="forcePosition">Force Position</option>
+          <option value="fullSpeedAhead">Full Speed Ahead</option>
+          <option value="grapple">Grapple</option>
+          <option value="holdHerSteady">Hold Her Steady</option>
+          <option value="motivate">Motivate</option>
+          <option value="patch">Patch</option>
+          <option value="ram">Ram</option>
+          <option value="sheer">Sheer</option>
+        </select>
+      </div>
+      <div class="controls">
+        <button onclick="performShipboardAction()">Realizar Acción</button>
+      </div>
+    `;
+    
+    // Añadir la sección a las estaciones
+    document.querySelector('.stations').appendChild(actionsSection);
+  }
+
+  // Añadir función para ejecutar la acción seleccionada
+  function performShipboardAction() {
+    const action = document.getElementById('shipboardAction').value;
+    let actionName = document.getElementById('shipboardAction').options[document.getElementById('shipboardAction').selectedIndex].text;
+
+    // Mostrar diálogo para tiradas de dados según la acción
+    switch(action) {
+      case 'allStop':
+        showDiceCheckModal('Master of Tops', 'DEX (Vehículos Acuáticos)', 12, actionName);
+        break;
+      case 'comeAbout':
+        showDiceCheckModal('Timonel', 'DEX (Vehículos Acuáticos)', 15, actionName);
+        break;
+      case 'disableStation':
+        logAction(`El artillero intenta una acción de ${actionName}. Este ataque se realiza con desventaja.`);
+        break;
+      case 'escapeGrapple':
+        showDiceCheckModal('Contramaestre', 'CHA (Intimidación o Persuasión)', 13, actionName);
+        break;
+      case 'patch':
+        // Para Patch, necesitamos saber si están reparando el casco o una estación
+        const patchType = confirm('¿Estás reparando el casco? Selecciona OK para casco, Cancelar para una estación.');
+        const dc = patchType ? (11 + 2 * Math.floor((ship.maxHp - ship.currentHp) / 25)) : 15;
+        showDiceCheckModal('Carpintero', 'WIS (Herramientas de Carpintero)', dc, actionName);
+        break;
+      default:
+        logAction(`La tripulación intenta realizar la acción: ${actionName}`);
+        break;
+    }
+  }
+
+  // Función para mostrar un modal de prueba de habilidad
+  function showDiceCheckModal(position, skill, dc, actionName) {
+    // Crear modal si no existe
+    if (!document.getElementById('skillCheckModal')) {
+      const modal = document.createElement('div');
+      modal.id = 'skillCheckModal';
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <span class="close" onclick="closeSkillCheckModal()">&times;</span>
+          <h2>Prueba de Habilidad</h2>
+          <div id="skillCheckInfo"></div>
+          <div class="dice-row">
+            <div class="dice" id="skillDice">?</div>
+            <div>+</div>
+            <div class="dice" id="skillMod">0</div>
+            <div>=</div>
+            <div class="dice" id="skillTotal">?</div>
+          </div>
+          <div class="roll-result" id="skillRollResult"></div>
+          <div style="text-align: center; margin-top: 20px;">
+            <button onclick="rollSkillCheck()">Tirar Dado</button>
+            <input type="number" id="skillModifier" value="0" min="-5" max="10" style="width: 50px;">
+            <label for="skillModifier">Modificador</label>
+            <button onclick="closeSkillCheckModal()">Cerrar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    // Actualizar información de la prueba
+    document.getElementById('skillCheckInfo').innerHTML = `
+      <p><strong>${position}</strong> intenta una prueba de <strong>${skill}</strong> con DC ${dc} para la acción <strong>${actionName}</strong>.</p>
+    `;
+
+    // Almacenar la DC para usar durante la tirada
+    document.getElementById('skillCheckModal').setAttribute('data-dc', dc);
+    document.getElementById('skillCheckModal').setAttribute('data-action', actionName);
+
+    // Resetear los dados
+    document.getElementById('skillDice').textContent = '?';
+    document.getElementById('skillTotal').textContent = '?';
+    document.getElementById('skillRollResult').textContent = '';
+
+    // Mostrar el modal
+    document.getElementById('skillCheckModal').style.display = 'block';
+  }
+
+  // Función para realizar la tirada de habilidad
+  function rollSkillCheck() {
+    const diceRoll = Math.floor(Math.random() * 20) + 1;
+    const modifier = parseInt(document.getElementById('skillModifier').value);
+    const total = diceRoll + modifier;
+    const dc = parseInt(document.getElementById('skillCheckModal').getAttribute('data-dc'));
+    const actionName = document.getElementById('skillCheckModal').getAttribute('data-action');
+
+    // Actualizar visualización
+    document.getElementById('skillDice').textContent = diceRoll;
+    document.getElementById('skillMod').textContent = modifier;
+    document.getElementById('skillTotal').textContent = total;
+
+    // Determinar resultado
+    const success = total >= dc;
+    const resultText = success ? '¡Éxito!' : 'Fracaso';
+    document.getElementById('skillRollResult').textContent = `${resultText} (DC ${dc})`;
+    document.getElementById('skillRollResult').style.color = success ? '#4caf50' : '#f44336';
+
+    // Loggear el resultado
+    logAction(`Acción de ${actionName}: Tirada ${diceRoll} + ${modifier} = ${total} vs DC ${dc} - ${resultText}`);
+
+    // Efectos especiales según la acción
+    if (actionName === 'Patch' && success) {
+      // Si es una reparación exitosa
+      const repairAmount = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1; // 2d6
+      repairHull(repairAmount);
+    }
+  }
+
+  // Función para cerrar el modal de prueba de habilidad
+  function closeSkillCheckModal() {
+    document.getElementById('skillCheckModal').style.display = 'none';
+  }
+
+  // Modificar la función de inicio para añadir controles de acción
+  function init() {
+    updateHpDisplay();
+    updateShipVisuals();
+    updateWeaponsList();
+    addShipboardActionControls(); // Añadir esta línea
+    document.getElementById("combatLog").innerHTML = `<div class="log-entry">Bienvenido al rastreador de navío para D&D. ¡Que tengas una buena batalla naval!</div>`;
+  }
+
+  // Modificar la función repairHull para aceptar una cantidad opcional
+  function repairHull(optionalAmount) {
+    const repairAmount = optionalAmount || parseInt(document.getElementById("repairAmount").value);
+    const oldHpPercent = (ship.currentHp / ship.maxHp) * 100;
+
+    ship.currentHp = Math.min(ship.maxHp, ship.currentHp + repairAmount);
+    updateHpDisplay();
+
+    const newHpPercent = (ship.currentHp / ship.maxHp) * 100;
+    checkHullThresholds(oldHpPercent, newHpPercent);
+
+    if (!optionalAmount) {
+      logAction(`El casco ha sido reparado por ${repairAmount} puntos. HP actual: ${ship.currentHp}/${ship.maxHp}.`);
+    } else {
+      logAction(`El carpintero repara el casco por ${repairAmount} puntos (2d6). HP actual: ${ship.currentHp}/${ship.maxHp}.`);
+    }
+  }
+  </script>
+</body>
+</html>
